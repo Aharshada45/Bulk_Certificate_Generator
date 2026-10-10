@@ -37,6 +37,7 @@ class RecipientIn(BaseModel):
 
 
 class JobCreate(BaseModel):
+    """The data needed to start a certificate job: course details plus the list of recipients."""
     model_config = ConfigDict(
         str_strip_whitespace=True,
         json_schema_extra={
@@ -68,6 +69,7 @@ class JobCreate(BaseModel):
 
 
 class Progress(BaseModel):
+    """Counts of how many certificates are pending, generated, failed or invalid, and the percent complete."""
     total: int
     pending: int
     generated: int
@@ -78,12 +80,14 @@ class Progress(BaseModel):
 
 
 class JobLinks(BaseModel):
+    """Ready-made URLs for a job's details, its certificate list and its ZIP download."""
     self: str
     certificates: str
     download: str
 
 
 class JobOut(BaseModel):
+    """A job's summary: its details, current status and progress."""
     id: str
     title: str
     issuer: str
@@ -98,6 +102,7 @@ class JobOut(BaseModel):
 
 
 class CertificateOut(BaseModel):
+    """The result of one recipient's certificate: its status, error and download link."""
     id: str
     job_id: str
     position: int
@@ -110,6 +115,7 @@ class CertificateOut(BaseModel):
 
 
 class CertificateList(BaseModel):
+    """A page of recipient results for a job, with the total count."""
     items: list[CertificateOut]
     total: int
     limit: int

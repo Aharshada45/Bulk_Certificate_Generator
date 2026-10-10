@@ -38,6 +38,7 @@ class UTCDateTime(TypeDecorator):
 
 
 class JobStatus(enum.StrEnum):
+    """The allowed states of a job: pending, processing, completed, completed_with_errors or failed."""
     PENDING = "pending"  # accepted, waiting for the worker
     PROCESSING = "processing"  # worker is generating certificates
     COMPLETED = "completed"  # every recipient got a certificate
@@ -49,10 +50,11 @@ TERMINAL_JOB_STATUSES = {JobStatus.COMPLETED, JobStatus.COMPLETED_WITH_ERRORS, J
 
 
 class CertificateStatus(enum.StrEnum):
-    PENDING = "pending"  # valid, not generated yet
-    GENERATED = "generated"  # PDF written successfully
-    FAILED = "failed"  # valid input, but generation raised an error
-    INVALID = "invalid"  # rejected by validation; never attempted
+    """The allowed states of a single certificate: pending, generated, failed or invalid."""
+    PENDING = "pending"
+    GENERATED = "generated"
+    FAILED = "failed"
+    INVALID = "invalid"
 
 
 class Job(Base):

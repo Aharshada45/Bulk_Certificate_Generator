@@ -4,11 +4,12 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import database, services, worker
 from app.api import router
 from app.config import settings
+from app.docs import custom_openapi, swagger_ui_with_summaries
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -33,8 +34,16 @@ app = FastAPI(
     "track progress, and download the results.",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None,  # replaced by the customised page below
 )
 app.include_router(router)
+app.openapi = custom_openapi(app)
+
+
+@app.get("/docs", include_in_schema=False)
+def docs() -> HTMLResponse:
+    """Swagger UI, with each schema's description shown above its box."""
+    return swagger_ui_with_summaries(app)
 
 
 @app.get("/", include_in_schema=False)
@@ -43,6 +52,6 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/docs")
 
 
-@app.get("/health", tags=["meta"])
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+# @app.get("/health", tags=["meta"])
+# def health() -> dict[str, str]:
+#     return {"status": "ok"}

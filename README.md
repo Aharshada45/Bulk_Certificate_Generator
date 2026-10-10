@@ -22,13 +22,13 @@ pip install -r requirements.txt
 
 ### Configuration (environment variables, all optional)
 
-| Variable         | Default                         | Meaning                                         |
-|------------------|---------------------------------|-------------------------------------------------|
-| `DATABASE_URL`   | `sqlite:///./certificates.db`   | SQLAlchemy database URL                         |
-| `STORAGE_DIR`    | `./storage`                     | Where generated PDFs are written                |
-| `MAX_RECIPIENTS` | `1000`                          | Max recipients per job                          |
-| `MAX_CSV_BYTES`  | `1048576` (1 MB)                | Max CSV upload size                             |
-| `WORKER_THREADS` | `2`                             | Jobs processed concurrently                     |
+| Variable         | Default                       | Meaning                          |
+| ---------------- | ----------------------------- | -------------------------------- |
+| `DATABASE_URL`   | `sqlite:///./certificates.db` | SQLAlchemy database URL          |
+| `STORAGE_DIR`    | `./storage`                   | Where generated PDFs are written |
+| `MAX_RECIPIENTS` | `1000`                        | Max recipients per job           |
+| `MAX_CSV_BYTES`  | `1048576` (1 MB)              | Max CSV upload size              |
+| `WORKER_THREADS` | `2`                           | Jobs processed concurrently      |
 
 To use PostgreSQL instead, install a driver (`pip install psycopg[binary]`) and set
 `DATABASE_URL=postgresql+psycopg://user:pass@localhost/certs`. No code changes needed.
@@ -50,14 +50,14 @@ pytest
 
 Tests use a fresh temporary SQLite database and storage directory per test.
 
-| Test file                     | Covers                                                                   |
-|-------------------------------|--------------------------------------------------------------------------|
-| `tests/test_jobs.py`          | Creating jobs (JSON and CSV), listing, 404s                              |
-| `tests/test_validation.py`    | Request-level 422s, per-recipient validation, CSV validation             |
-| `tests/test_generation.py`    | PDF content (text extracted with pypdf), files written for each recipient |
-| `tests/test_progress.py`      | Status transitions, progress counts, filtering, resume after restart, real background worker |
-| `tests/test_failures.py`      | One certificate failing while others succeed, all-failed jobs, retry, job-level errors |
-| `tests/test_retrieval.py`     | Downloading single PDFs and ZIPs, plus error cases                       |
+| Test file                  | Covers                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `tests/test_jobs.py`       | Creating jobs (JSON and CSV), listing, 404s                                                  |
+| `tests/test_validation.py` | Request-level 422s, per-recipient validation, CSV validation                                 |
+| `tests/test_generation.py` | PDF content (text extracted with pypdf), files written for each recipient                    |
+| `tests/test_progress.py`   | Status transitions, progress counts, filtering, resume after restart, real background worker |
+| `tests/test_failures.py`   | One certificate failing while others succeed, all-failed jobs, retry, job-level errors       |
+| `tests/test_retrieval.py`  | Downloading single PDFs and ZIPs, plus error cases                                           |
 
 ## 4. Submitting a certificate generation request
 
@@ -118,13 +118,13 @@ Excel adds is handled.
 curl http://localhost:8000/jobs/{job_id}
 ```
 
-| Job status               | Meaning                                              |
-|--------------------------|------------------------------------------------------|
-| `pending`                | Accepted, waiting for the worker                     |
-| `processing`             | Certificates are being generated                     |
-| `completed`              | Every recipient got a certificate                    |
-| `completed_with_errors`  | At least one generated, and at least one invalid/failed |
-| `failed`                 | Nothing could be generated                           |
+| Job status              | Meaning                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `pending`               | Accepted, waiting for the worker                        |
+| `processing`            | Certificates are being generated                        |
+| `completed`             | Every recipient got a certificate                       |
+| `completed_with_errors` | At least one generated, and at least one invalid/failed |
+| `failed`                | Nothing could be generated                              |
 
 To see per-recipient results, including **which ones failed and why**:
 
@@ -137,7 +137,7 @@ curl "http://localhost:8000/jobs/{job_id}/certificates?status=invalid"   # valid
 Each item has `position` (its index in the submitted list), `name`, `email`, `status`
 (`pending` / `generated` / `failed` / `invalid`), an `error` message, and a `download_url`.
 
-To retry certificates whose *generation* failed (for example after a transient problem was
+To retry certificates whose _generation_ failed (for example after a transient problem was
 fixed), run `curl -X POST http://localhost:8000/jobs/{job_id}/retry`. Invalid recipients are
 never retried, because their input has to be corrected and resubmitted.
 
@@ -154,26 +154,25 @@ curl -OJ http://localhost:8000/jobs/{job_id}/download
 ZIP entries are named `0001_Asha_Rao_<id>.pdf` (submission order, name, short id).
 Error responses:
 
-| Case | Response |
-|---|---|
-| Certificate not generated (invalid/failed/pending) | `409` |
-| ZIP requested before the job finished | `409` |
-| Job finished but nothing was generated | `404` |
+| Case                                               | Response |
+| -------------------------------------------------- | -------- |
+| Certificate not generated (invalid/failed/pending) | `409`    |
+| ZIP requested before the job finished              | `409`    |
+| Job finished but nothing was generated             | `404`    |
 
 ## API summary
 
-| Method | Path                                                   | Purpose                              |
-|--------|--------------------------------------------------------|--------------------------------------|
-| POST   | `/jobs`                                                | Create a job from JSON               |
-| POST   | `/jobs/csv`                                            | Create a job from a CSV upload       |
-| GET    | `/jobs`                                                | List jobs (newest first)             |
-| GET    | `/jobs/{job_id}`                                       | Job status and progress              |
-| POST   | `/jobs/{job_id}/retry`                                 | Retry failed certificates            |
-| GET    | `/jobs/{job_id}/certificates`                          | Per-recipient results (`status`, `limit`, `offset`) |
-| GET    | `/jobs/{job_id}/certificates/{id}`                     | One certificate's metadata           |
-| GET    | `/jobs/{job_id}/certificates/{id}/download`            | Download one PDF                     |
-| GET    | `/jobs/{job_id}/download`                              | Download all generated PDFs as ZIP   |
-| GET    | `/health`                                              | Health check                         |
+| Method | Path                                        | Purpose                                             |
+| ------ | ------------------------------------------- | --------------------------------------------------- |
+| POST   | `/jobs`                                     | Create a job from JSON                              |
+| POST   | `/jobs/csv`                                 | Create a job from a CSV upload                      |
+| GET    | `/jobs`                                     | List jobs (newest first)                            |
+| GET    | `/jobs/{job_id}`                            | Job status and progress                             |
+| POST   | `/jobs/{job_id}/retry`                      | Retry failed certificates                           |
+| GET    | `/jobs/{job_id}/certificates`               | Per-recipient results (`status`, `limit`, `offset`) |
+| GET    | `/jobs/{job_id}/certificates/{id}`          | One certificate's metadata                          |
+| GET    | `/jobs/{job_id}/certificates/{id}/download` | Download one PDF                                    |
+| GET    | `/jobs/{job_id}/download`                   | Download all generated PDFs as ZIP                  |
 
 ---
 
@@ -203,7 +202,7 @@ Routes stay thin. The business logic lives in `services.py` and the PDF renderin
 
 - **`jobs`**: the shared certificate info (title, issuer, issue date), status, timestamps,
   and a job-level error.
-- **`certificates`**: one row per submitted recipient, *including invalid ones*. It stores
+- **`certificates`**: one row per submitted recipient, _including invalid ones_. It stores
   `position`, name, email, status, error, and the PDF path.
 
 Every recipient gets a row, even an invalid one, so the client can see exactly what happened
@@ -240,7 +239,7 @@ job id to a `ThreadPoolExecutor`, and returns `202 Accepted` right away. The cli
    not UTF-8, too large).
 2. **Recipient level → stored as `invalid` with a reason, and the job continues:** empty or
    overly long name, bad email, a duplicate email within the same job (case-insensitive), or an
-   entry that isn't an object. Duplicate *names* without emails are allowed, since two people
+   entry that isn't an object. Duplicate _names_ without emails are allowed, since two people
    can share a name.
 
 At generation time, each certificate is rendered inside its own `try/except`. An exception is

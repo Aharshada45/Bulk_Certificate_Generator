@@ -70,6 +70,13 @@ def _get_job_or_404(db: Session, job_id: str) -> Job:
     return job
 
 
+def _get_certificate_or_404(db: Session, job_id: str, certificate_id: str) -> Certificate:
+    certificate = db.get(Certificate, certificate_id)
+    if certificate is None or certificate.job_id != job_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certificate not found")
+    return certificate
+
+
 def _submit(db: Session, payload: JobCreate, response: Response) -> JobOut:
     job = services.create_job(db, payload)
     worker.submit_job(job.id)
@@ -85,13 +92,13 @@ def _safe_filename(text: str) -> str:
 # --------------------------------------------------------------------------- jobs
 
 
-@router.post("/jobs", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
+@router.post("/jobs", summary="Starts generating certificates for a list of recipients sent as JSON", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
 def create_job(payload: JobCreate, response: Response, db: DbSession) -> JobOut:
     """Submit a bulk generation request. Returns immediately; poll the job for progress."""
     return _submit(db, payload, response)
 
 
-@router.post("/jobs/csv", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
+@router.post("/jobs/csv", summary="Starts generating certificates for recipients read from an uploaded CSV file", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
 async def create_job_from_csv(
     response: Response,
     db: DbSession,
@@ -131,7 +138,7 @@ async def create_job_from_csv(
     return _submit(db, payload, response)
 
 
-@router.get("/jobs", response_model=list[JobOut], tags=["jobs"])
+@router.get("/jobs", summary="Lists all jobs, newest first", response_model=list[JobOut], tags=["jobs"])
 def list_jobs(
     db: DbSession,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -141,13 +148,13 @@ def list_jobs(
     return [_job_out(db, job) for job in jobs]
 
 
-@router.get("/jobs/{job_id}", response_model=JobOut, tags=["jobs"])
+@router.get("/jobs/{job_id}", summary="Shows one job's status and progress counts", response_model=JobOut, tags=["jobs"])
 def get_job(job_id: str, db: DbSession) -> JobOut:
     """Job status and progress counts (cheap enough to poll)."""
     return _job_out(db, _get_job_or_404(db, job_id))
 
 
-@router.post("/jobs/{job_id}/retry", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
+@router.post("/jobs/{job_id}/retry", summary="Re-attempts only the certificates in a job that failed during generation", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED, tags=["jobs"])
 def retry_job(job_id: str, db: DbSession) -> JobOut:
     """Re-attempt certificates whose generation failed (invalid input is not retried)."""
     job = _get_job_or_404(db, job_id)
@@ -162,7 +169,7 @@ def retry_job(job_id: str, db: DbSession) -> JobOut:
 # --------------------------------------------------------------------------- certificates
 
 
-@router.get("/jobs/{job_id}/certificates", response_model=CertificateList, tags=["certificates"])
+@router.get("/jobs/{job_id}/certificates", summary="Lists each recipient's result in a job, filterable by status", response_model=CertificateList, tags=["certificates"])
 def list_certificates(
     job_id: str,
     db: DbSession,
@@ -182,25 +189,21 @@ def list_certificates(
     )
 
 
-@router.get("/jobs/{job_id}/certificates/{certificate_id}", response_model=CertificateOut, tags=["certificates"])
+@router.get("/jobs/{job_id}/certificates/{certificate_id}", summary="Shows the details and status of one recipient's certificate", response_model=CertificateOut, tags=["certificates"])
 def get_certificate(job_id: str, certificate_id: str, db: DbSession) -> CertificateOut:
-    cert = db.get(Certificate, certificate_id)
-    if cert is None or cert.job_id != job_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certificate not found")
-    return _certificate_out(cert)
+    return _certificate_out(_get_certificate_or_404(db, job_id, certificate_id))
 
 
 @router.get(
     "/jobs/{job_id}/certificates/{certificate_id}/download",
+    summary="Downloads one recipient's certificate as a PDF",
     response_class=FileResponse,
     responses={200: {"content": {"application/pdf": {}}}},
     tags=["certificates"],
 )
 def download_certificate(job_id: str, certificate_id: str, db: DbSession) -> FileResponse:
     """Download a single generated certificate as PDF."""
-    cert = db.get(Certificate, certificate_id)
-    if cert is None or cert.job_id != job_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certificate not found")
+    cert = _get_certificate_or_404(db, job_id, certificate_id)
     if cert.status != CertificateStatus.GENERATED or not cert.file_path:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Certificate is not available (status: {cert.status})")
     path = settings.storage_dir / cert.file_path
@@ -215,6 +218,7 @@ def download_certificate(job_id: str, certificate_id: str, db: DbSession) -> Fil
 
 @router.get(
     "/jobs/{job_id}/download",
+    summary="Downloads all generated certificates of a finished job as one ZIP file",
     response_class=StreamingResponse,
     responses={200: {"content": {"application/zip": {}}}},
     tags=["certificates"],
