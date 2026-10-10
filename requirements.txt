@@ -1,0 +1,11 @@
+fastapi==0.143.0
+uvicorn==0.54.0
+SQLAlchemy==2.1.4
+pydantic[email]==2.14.0
+python-multipart==0.0.32
+reportlab==5.0.1
+
+# testing
+pytest==9.1.1
+httpx2==2.13.1
+pypdf==6.20.0
