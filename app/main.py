@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from app import database, services, worker
 from app.api import router
@@ -34,6 +35,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    """Send visitors of the bare URL to the interactive API docs."""
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", tags=["meta"])
